@@ -1,0 +1,16 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ] 
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Lấy code mới nhất từ repository
+      uses: actions/checkout@v3
+
+    - name: Tiến hành kiểm tra đóng gói Docker
+      run: docker build -t devops-demo-app .
