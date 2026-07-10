@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copy 2 file từ máy tính của Dũng vào trong container
 COPY requirements.txt requirements.txt
-COPY app.py app.py
+COPY app_web.py app_web.py
 
 # Cài đặt Flask từ file requirements
 RUN pip install -r requirements.txt
