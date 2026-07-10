@@ -15,4 +15,4 @@ RUN pip install -r requirements.txt
 EXPOSE 5000
 
 # Lệnh để chạy app khi container khởi động
-CMD ["python", "app.py"]
+CMD ["python", "app_web.py"]
