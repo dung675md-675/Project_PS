@@ -1,0 +1,56 @@
+name: CI/CD - Build, Test & Deploy
+
+# Tự động chạy mỗi khi có push lên nhánh main
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-test-deploy:
+    # "self-hosted" nghĩa là job này chạy trực tiếp trên VM Ubuntu của bạn,
+    # không phải trên máy chủ của GitHub
+    runs-on: self-hosted
+
+    steps:
+      # Bước 1: Lấy code mới nhất về (thay cho "git pull" thủ công)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Bước 2: Cài Python đúng phiên bản
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      # Bước 3: Cài thư viện cần thiết
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      # Bước 4: Chạy test - nếu test fail, pipeline dừng lại,
+      # KHÔNG deploy bản lỗi lên server
+      - name: Run tests
+        run: pytest -v
+
+      # Bước 5: Build Docker image
+      # Gắn 2 tag: theo mã commit (để rollback) và "latest" (bản đang chạy)
+      - name: Build Docker image
+        run: |
+          docker build --no-cache \
+            -t devops-demo-app:${{ github.sha }} \
+            -t devops-demo-app:latest .
+
+      # Bước 6: Gỡ container cũ (chỉ gỡ đúng container của app này,
+      # không đụng tới container khác đang chạy trên server)
+      - name: Stop old container (if exists)
+        run: docker rm -f devops-demo-app || true
+
+      # Bước 7: Chạy container mới
+      - name: Run new container
+        run: docker run -d --name devops-demo-app -p 80:5000 devops-demo-app:latest
+
+      # Bước 8: Dọn các image cũ không dùng nữa, tránh đầy ổ đĩa
+      - name: Clean up unused images
+        run: docker image prune -f
