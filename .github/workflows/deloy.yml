@@ -7,8 +7,6 @@ on:
 
 jobs:
   build-test-deploy:
-    # "self-hosted" nghĩa là job này chạy trực tiếp trên VM Ubuntu của bạn,
-    # không phải trên máy chủ của GitHub
     runs-on: self-hosted
 
     steps:
@@ -16,34 +14,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Bước 2: Cài Python đúng phiên bản
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
+      # Bước 2: Tạo virtual environment bằng Python có sẵn trên VM
+      - name: Set up virtual environment
+        run: python3 -m venv venv
 
-      # Bước 3: Cài thư viện cần thiết
+      # Bước 3: Cài thư viện cần thiết vào venv (không đụng tới Python hệ thống)
       - name: Install dependencies
         run: |
-          python3 -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest
+          ./venv/bin/pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt
+          ./venv/bin/pip install pytest
 
       # Bước 4: Chạy test - nếu test fail, pipeline dừng lại,
-      # KHÔNG deploy bản lỗi lên server
       - name: Run tests
-        run: pytest -v
+        run: ./venv/bin/pytest -v
 
       # Bước 5: Build Docker image
-      # Gắn 2 tag: theo mã commit (để rollback) và "latest" (bản đang chạy)
       - name: Build Docker image
         run: |
           docker build --no-cache \
             -t devops-demo-app:${{ github.sha }} \
             -t devops-demo-app:latest .
 
-      # Bước 6: Gỡ container cũ (chỉ gỡ đúng container của app này,
-      # không đụng tới container khác đang chạy trên server)
+      # Bước 6: Gỡ container cũ (chỉ gỡ đúng container của app này)
       - name: Stop old container (if exists)
         run: docker rm -f devops-demo-app || true
 
